@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="description" content="Tic Tac Toe - Neon Edition">
+  <title>Tic Tac Toe</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #080808;
+      --bg-card: #111111;
+      --border: #222222;
+      --x-color: #ff2d55;
+      --o-color: #00ffcc;
+      --x-glow: #ff2d5580;
+      --o-glow: #00ffcc80;
+      --accent: #ffcc00;
+      --text: #eeeeee;
+      --text-dim: #666666;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: 
+        linear-gradient(90deg, transparent 49.5%, var(--border) 49.5%, var(--border) 50.5%, transparent 50.5%),
+        linear-gradient(0deg, transparent 49.5%, var(--border) 49.5%, var(--border) 50.5%, transparent 50.5%);
+      background-size: 60px 60px;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 30px;
+    }
+
+    .title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(32px, 8vw, 48px);
+      font-weight: 900;
+      letter-spacing: 8px;
+      background: linear-gradient(135deg, var(--x-color), var(--o-color));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 0 40px var(--x-glow);
+    }
+
+    .status {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 18px;
+      color: var(--text);
+      text-align: center;
+      min-height: 24px;
+      letter-spacing: 2px;
+    }
+
+    .status span { color: var(--accent); }
+
+    .score-board {
+      display: flex;
+      gap: 40px;
+      background: var(--bg-card);
+      padding: 15px 30px;
+      border: 1px solid var(--border);
+    }
+
+    .score-item {
+      text-align: center;
+    }
+
+    .score-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .score-value {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 32px;
+      font-weight: 700;
+      margin-top: 5px;
+    }
+
+    .score-value.x { color: var(--x-color); text-shadow: 0 0 20px var(--x-glow); }
+    .score-value.o { color: var(--o-color); text-shadow: 0 0 20px var(--o-glow); }
+    .score-value.d { color: var(--text-dim); }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 12px;
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+    }
+
+    .cell {
+      width: min(28vw, 100px);
+      height: min(28vw, 100px);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(36px, 10vw, 56px);
+      font-weight: 900;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .cell:hover:not(.taken) {
+      background: #1a1a1a;
+      border-color: var(--text-dim);
+    }
+
+    .cell.x {
+      color: var(--x-color);
+      text-shadow: 0 0 30px var(--x-glow);
+    }
+
+    .cell.o {
+      color: var(--o-color);
+      text-shadow: 0 0 30px var(--o-glow);
+    }
+
+    .cell.winner {
+      animation: winPulse 0.5s ease infinite;
+    }
+
+    @keyframes winPulse {
+      0%, 100% { background: var(--bg); }
+      50% { background: #1a1a1a; }
+    }
+
+    .cell.winner.x { background: rgba(255,45,85,0.15); border-color: var(--x-color); }
+    .cell.winner.o { background: rgba(0,255,204,0.15); border-color: var(--o-color); }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 12px 24px;
+      border: none;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(255,204,0,0.4);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--text-dim);
+      background: #1a1a1a;
+    }
+
+    .mode-toggle {
+      display: flex;
+      gap: 8px;
+      background: var(--bg-card);
+      padding: 4px;
+      border: 1px solid var(--border);
+    }
+
+    .mode-btn {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      padding: 8px 16px;
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.2s;
+    }
+
+    .mode-btn.active {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    .install-prompt {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-card);
+      border: 1px solid var(--accent);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 100;
+    }
+
+    .install-prompt.hidden { display: none; }
+    .install-prompt span { color: var(--accent); font-size: 12px; }
+    .install-prompt button {
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      padding: 6px 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .install-prompt .close {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    @media (max-width: 400px) {
+      .score-board { gap: 25px; padding: 12px 20px; }
+      .score-value { font-size: 24px; }
+      .controls { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="title">TICTACTOE</h1>
+
+    <div class="mode-toggle">
+      <button class="mode-btn active" data-mode="pvp">2 Player</button>
+      <button class="mode-btn" data-mode="pvc">vs CPU</button>
+    </div>
+
+    <div class="score-board">
+      <div class="score-item">
+        <div class="score-label">X Wins</div>
+        <div class="score-value x" id="scoreX">0</div>
+      </div>
+      <div class="score-item">
+        <div class="score-label">Draws</div>
+        <div class="score-value d" id="scoreD">0</div>
+      </div>
+      <div class="score-item">
+        <div class="score-label">O Wins</div>
+        <div class="score-value o" id="scoreO">0</div>
+      </div>
+    </div>
+
+    <div class="status" id="status">X's Turn</div>
+
+    <div class="board" id="board"></div>
+
+    <div class="controls">
+      <button class="btn btn-primary" id="resetBtn">New Game</button>
+      <button class="btn btn-secondary" id="clearBtn">Clear Scores</button>
+    </div>
+  </div>
+
+  <div class="install-prompt hidden" id="installPrompt">
+    <span>Install App</span>
+    <button id="installBtn">Install</button>
+    <button class="close" id="closeInstall">×</button>
+  </div>
+
+  <script>
+    const boardEl = document.getElementById('board');
+    const statusEl = document.getElementById('status');
+    const scoreXEl = document.getElementById('scoreX');
+    const scoreOEl = document.getElementById('scoreO');
+    const scoreDEl = document.getElementById('scoreD');
+    const resetBtn = document.getElementById('resetBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const modeBtns = document.querySelectorAll('.mode-btn');
+    const installPrompt = document.getElementById('installPrompt');
+    const installBtn = document.getElementById('installBtn');
+    const closeInstall = document.getElementById('closeInstall');
+
+    let board = Array(9).fill('');
+    let currentPlayer = 'X';
+    let gameOver = false;
+    let mode = 'pvp';
+    let scores = { X: 0, O: 0, D: 0 };
+
+    const WIN_COMBOS = [
+      [0,1,2], [3,4,5], [6,7,8],
+      [0,3,6], [1,4,7], [2,5,8],
+      [0,4,8], [2,4,6]
+    ];
+
+    const loadScores = () => {
+      const saved = localStorage.getItem('tttScores');
+      if (saved) scores = JSON.parse(saved);
+      updateScoreDisplay();
+    };
+
+    const saveScores = () => localStorage.setItem('tttScores', JSON.stringify(scores));
+
+    const updateScoreDisplay = () => {
+      scoreXEl.textContent = scores.X;
+      scoreOEl.textContent = scores.O;
+      scoreDEl.textContent = scores.D;
+    };
+
+    const createBoard = () => {
+      boardEl.innerHTML = '';
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.index = i;
+        cell.addEventListener('click', () => handleClick(i));
+        boardEl.appendChild(cell);
+      }
+    };
+
+    const render = () => {
+      const cells = boardEl.querySelectorAll('.cell');
+      cells.forEach((cell, i) => {
+        cell.textContent = board[i];
+        cell.className = 'cell' + (board[i] ? ` ${board[i].toLowerCase()}` : '');
+      });
+    };
+
+    const checkWin = (b = board) => {
+      for (const combo of WIN_COMBOS) {
+        const [a, b2, c] = combo;
+        if (b[a] && b[a] === b[b2] && b[a] === b[c]) {
+          return { winner: b[a], combo };
+        }
+      }
+      return null;
+    };
+
+    const checkDraw = () => board.every(cell => cell !== '');
+
+    const handleClick = (i) => {
+      if (gameOver || board[i]) return;
+      
+      board[i] = currentPlayer;
+      render();
+      
+      const win = checkWin();
+      if (win) {
+        endGame(win.winner, win.combo);
+        return;
+      }
+      
+      if (checkDraw()) {
+        endGame(null);
+        return;
+      }
+      
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      statusEl.textContent = `${currentPlayer}'s Turn`;
+      
+      if (mode === 'pvc' && currentPlayer === 'O' && !gameOver) {
+        setTimeout(cpuMove, 400);
+      }
+    };
+
+    const cpuMove = () => {
+      if (gameOver) return;
+      
+      let move;
+      const win = checkWin();
+      if (win) return;
+      
+      for (const combo of WIN_COMBOS) {
+        const [a, b, c] = combo;
+        const line = [board[a], board[b], board[c]];
+        if (line.filter(x => x === 'O').length === 2 && line.includes('')) {
+          move = [a, b, c][line.indexOf('')];
+          break;
+        }
+      }
+      
+      if (move === undefined) {
+        for (const combo of WIN_COMBOS) {
+          const [a, b, c] = combo;
+          const line = [board[a], board[b], board[c]];
+          if (line.filter(x => x === 'X').length === 2 && line.includes('')) {
+            move = [a, b, c][line.indexOf('')];
+            break;
+          }
+        }
+      }
+      
+      if (move === undefined) {
+        const empty = board.map((c, i) => c === '' ? i : -1).filter(i => i >= 0);
+        if (empty.includes(4)) move = 4;
+        else move = empty[Math.floor(Math.random() * empty.length)];
+      }
+      
+      board[move] = 'O';
+      render();
+      
+      const winO = checkWin();
+      if (winO) {
+        endGame(winO.winner, winO.combo);
+        return;
+      }
+      
+      if (checkDraw()) {
+        endGame(null);
+        return;
+      }
+      
+      currentPlayer = 'X';
+      statusEl.textContent = "X's Turn";
+    };
+
+    const endGame = (winner, combo = null) => {
+      gameOver = true;
+      
+      if (winner) {
+        statusEl.innerHTML = `<span>${winner}</span> Wins!`;
+        scores[winner]++;
+        saveScores();
+        updateScoreDisplay();
+        
+        if (combo) {
+          const cells = boardEl.querySelectorAll('.cell');
+          combo.forEach(i => cells[i].classList.add('winner', winner.toLowerCase()));
+        }
+      } else {
+        statusEl.innerHTML = `<span>Draw!</span>`;
+        scores.D++;
+        saveScores();
+        updateScoreDisplay();
+      }
+    };
+
+    const reset = () => {
+      board = Array(9).fill('');
+      currentPlayer = 'X';
+      gameOver = false;
+      statusEl.textContent = "X's Turn";
+      render();
+    };
+
+    const clearScores = () => {
+      scores = { X: 0, O: 0, D: 0 };
+      saveScores();
+      updateScoreDisplay();
+    };
+
+    resetBtn.addEventListener('click', reset);
+    clearBtn.addEventListener('click', clearScores);
+
+    modeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        modeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        mode = btn.dataset.mode;
+        reset();
+      });
+    });
+
+    let deferredPrompt;
+    window.onbeforeinstallprompt = e => {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (!localStorage.getItem('tttInstalled')) installPrompt.classList.remove('hidden');
+    };
+    installBtn.onclick = async () => {
+      if (deferredPrompt) { const r = await deferredPrompt.userChoice; if (r.outcome === 'accepted') localStorage.setItem('tttInstalled', 'true'); }
+      deferredPrompt = null;
+      installPrompt.classList.add('hidden');
+    };
+    closeInstall.onclick = () => installPrompt.classList.add('hidden');
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').then(() => console.log('SW OK')).catch(e => console.log('SW err', e));
+    }
+
+    createBoard();
+    loadScores();
+    render();
+  </script>
+</body>
+</html>
