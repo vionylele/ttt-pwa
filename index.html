@@ -505,12 +505,27 @@
     window.onbeforeinstallprompt = e => {
       e.preventDefault();
       deferredPrompt = e;
-      if (!localStorage.getItem('tttInstalled')) installPrompt.classList.remove('hidden');
+      installPrompt.classList.remove('hidden');
     };
+
+    setTimeout(() => {
+      if (!window.matchMedia('(display-mode: standalone)').matches) {
+        installPrompt.classList.remove('hidden');
+      }
+    }, 3000);
+
     installBtn.onclick = async () => {
-      if (deferredPrompt) { const r = await deferredPrompt.userChoice; if (r.outcome === 'accepted') localStorage.setItem('tttInstalled', 'true'); }
-      deferredPrompt = null;
-      installPrompt.classList.add('hidden');
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const r = await deferredPrompt.userChoice;
+        if (r.outcome === 'accepted') {
+          localStorage.setItem('tttInstalled', 'true');
+          installPrompt.classList.add('hidden');
+        }
+      } else if (window.navigator.standalone !== undefined) {
+      } else {
+        alert('To install: Use browser menu > Add to Home Screen');
+      }
     };
     closeInstall.onclick = () => installPrompt.classList.add('hidden');
 
