@@ -299,6 +299,7 @@
     <div class="controls">
       <button class="btn btn-primary" id="resetBtn">New Game</button>
       <button class="btn btn-secondary" id="clearBtn">Clear Scores</button>
+      <button class="btn btn-secondary" id="installBtn2" style="margin-top:8px;border-color:#ffcc00;color:#ffcc00;">📲 Install App</button>
     </div>
   </div>
 
@@ -515,19 +516,37 @@
     }, 3000);
 
     installBtn.onclick = async () => {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      
       if (deferredPrompt) {
         deferredPrompt.prompt();
-        const r = await deferredPrompt.userChoice;
-        if (r.outcome === 'accepted') {
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
           localStorage.setItem('tttInstalled', 'true');
           installPrompt.classList.add('hidden');
         }
-      } else if (window.navigator.standalone !== undefined) {
+        return;
+      }
+      
+      if (window.navigator.standalone || isStandalone) {
+        alert('App is already installed!');
+        return;
+      }
+      
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(navigator.userAgent);
+      
+      if (isIOS) {
+        alert('On iOS: Tap the Share button (□↗) then tap "Add to Home Screen"');
+      } else if (isAndroid) {
+        alert('On Android: Tap the menu (⋮) then tap "Add to Home Screen" or "Install App"');
       } else {
-        alert('To install: Use browser menu > Add to Home Screen');
+        alert('On Desktop: Look for install icon in address bar, or use menu > Install');
       }
     };
     closeInstall.onclick = () => installPrompt.classList.add('hidden');
+
+    document.getElementById('installBtn2').onclick = installBtn.onclick;
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').then(() => console.log('SW OK')).catch(e => console.log('SW err', e));
