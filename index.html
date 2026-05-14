@@ -502,51 +502,86 @@
       });
     });
 
-    let deferredPrompt;
-    window.onbeforeinstallprompt = e => {
+    let deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      console.log('beforeinstallprompt fired');
       e.preventDefault();
       deferredPrompt = e;
       installPrompt.classList.remove('hidden');
-    };
+    });
 
-    setTimeout(() => {
-      if (!window.matchMedia('(display-mode: standalone)').matches) {
-        installPrompt.classList.remove('hidden');
-      }
-    }, 3000);
+    window.addEventListener('appinstalled', (e) => {
+      console.log('App installed successfully');
+      localStorage.setItem('tttInstalled', 'true');
+      installPrompt.classList.add('hidden');
+    });
 
-    installBtn.onclick = async () => {
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    function isStandalone() {
+      return window.matchMedia('(display-mode: standalone)').matches || 
+             window.navigator.standalone === true;
+    }
+
+    function showInstallInstructions() {
+      const userAgent = navigator.userAgent || '';
+      const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+      const isAndroid = /Android/.test(userAgent);
+      const isMobile = /Mobi|Android/i.test(userAgent);
       
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          localStorage.setItem('tttInstalled', 'true');
-          installPrompt.classList.add('hidden');
-        }
-        return;
-      }
-      
-      if (window.navigator.standalone || isStandalone) {
-        alert('App is already installed!');
-        return;
-      }
-      
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      const isAndroid = /Android/.test(navigator.userAgent);
+      let message = '';
       
       if (isIOS) {
-        alert('On iOS: Tap the Share button (□↗) then tap "Add to Home Screen"');
+        message = '📱 iOS INSTALLATION:\n\n1. Tap the Share button (⬜↗)\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add"';
       } else if (isAndroid) {
-        alert('On Android: Tap the menu (⋮) then tap "Add to Home Screen" or "Install App"');
+        message = '📱 ANDROID INSTALLATION:\n\n1. Tap the menu (three dots ⋮)\n2. Tap "Add to Home Screen" or "Install App"';
+      } else if (isMobile) {
+        message = '📱 MOBILE INSTALLATION:\n\nUse your browser menu to add to Home Screen';
       } else {
-        alert('On Desktop: Look for install icon in address bar, or use menu > Install');
+        message = '💻 DESKTOP INSTALLATION:\n\nLook for the install icon in the address bar, or use Menu > Install';
       }
-    };
-    closeInstall.onclick = () => installPrompt.classList.add('hidden');
+      
+      alert(message);
+    }
 
-    document.getElementById('installBtn2').onclick = installBtn.onclick;
+    function handleInstall() {
+      console.log('Install clicked, deferredPrompt:', deferredPrompt);
+      
+      if (isStandalone()) {
+        alert('✅ App is already installed and running!');
+        return;
+      }
+      
+      if (deferredPrompt) {
+        deferredPrompt.prompt().then(() => {
+          return deferredPrompt.userChoice;
+        }).then((choice) => {
+          if (choice.outcome === 'accepted') {
+            console.log('User accepted install');
+            localStorage.setItem('tttInstalled', 'true');
+            installPrompt.classList.add('hidden');
+          } else {
+            console.log('User dismissed install');
+          }
+          deferredPrompt = null;
+        }).catch((err) => {
+          console.error('Install error:', err);
+          showInstallInstructions();
+        });
+      } else {
+        console.log('No deferredPrompt, showing instructions');
+        showInstallInstructions();
+      }
+    }
+
+    installBtn.addEventListener('click', handleInstall);
+    closeInstall.addEventListener('click', () => installPrompt.classList.add('hidden'));
+    document.getElementById('installBtn2').addEventListener('click', handleInstall);
+
+    setTimeout(() => {
+      if (!isStandalone() && !localStorage.getItem('tttInstalled')) {
+        installPrompt.classList.remove('hidden');
+      }
+    }, 2000);
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').then(() => console.log('SW OK')).catch(e => console.log('SW err', e));
